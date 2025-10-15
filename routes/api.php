@@ -30,6 +30,16 @@ Route::get('/featured-properties', 'PropertyController@featured');
 Route::get('/recent-properties', 'PropertyController@recentProperty');
 Route::get('/properties/{id}/recommended', 'PropertyController@recommended');
 
+Route::group([
+    'namespace'  => 'API\Administration',
+    'prefix'     => 'admin',
+    'middleware' => ['auth:sanctum'],
+], function () {
+    require __DIR__.'/api/administration/dashboard.php';
+    require __DIR__.'/api/administration/accounts.php';
+    require __DIR__.'/api/administration/properties.php';
+});
+
 Route::middleware('auth:sanctum')->group(function ()
 {
     // PROPERTIES
