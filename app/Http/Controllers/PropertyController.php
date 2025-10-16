@@ -494,7 +494,10 @@ class PropertyController extends Controller
         // Store property title before deleting
         $propertyName = $property->title;
 
-        // Delete related data manually
+        // Delete related data
+        $property->schedules()->each(function($schedule) {
+            $schedule->bookings()->delete(); // delete bookings first
+        });
         $property->schedules()->delete();
         $property->inquiries()->delete();
         $property->leases()->delete();
@@ -502,7 +505,7 @@ class PropertyController extends Controller
         // Delete the property itself
         $property->delete();
 
-        // Notify landlord (owner of property)
+        // Notify landlord
         $landlord = $property->landlord;
         if ($landlord) {
             $landlord->notify(new SystemNotifications(
@@ -511,7 +514,7 @@ class PropertyController extends Controller
             ));
         }
 
-        // Notify the admin who deleted it
+        // Notify admin
         $admin = Auth::user();
         if ($admin && $admin->role === 1) {
             $admin->notify(new SystemNotifications(
