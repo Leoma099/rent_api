@@ -16,7 +16,10 @@ class CreatePropertyImageTable extends Migration
         Schema::create('property_image', function (Blueprint $table) {
             $table->bigIncrements('id');
             $table->bigInteger('property_id');
-            $table->longText('photo')->nullable();
+            $table->longText('photo_1')->nullable();
+            $table->longText('photo_2')->nullable();
+            $table->longText('photo_3')->nullable();
+            $table->longText('photo_4')->nullable();
             $table->timestamps();
         });
     }

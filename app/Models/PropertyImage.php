@@ -9,7 +9,14 @@ class PropertyImage extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['property_id', 'photo'];
+    protected $fillable =
+    [
+        'property_id',
+        'photo_1',
+        'photo_2',
+        'photo_3',
+        'photo_4'
+    ];
 
     public function properties()
     {

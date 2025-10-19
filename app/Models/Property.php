@@ -19,7 +19,10 @@ class Property extends Model
         'lng',
         'price',
         'property_type',
-        'photo',
+        'photo_1',
+        'photo_2',
+        'photo_3',
+        'photo_4',
         'floor_plan',
         'status',
         'is_featured',
@@ -30,6 +33,11 @@ class Property extends Model
     public function schedules()
     {
         return $this->hasMany(Schedule::class);
+    }
+
+    public function photos()
+    {
+        return $this->hasMany(PropertyImage::class);
     }
 
     public function bookings()

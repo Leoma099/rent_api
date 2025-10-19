@@ -161,7 +161,10 @@ class PropertyController extends Controller
             'lng'               => 'nullable|numeric', // fixed name + rule
             'price'             => 'nullable|numeric', // decimal -> numeric
             'property_type'     => 'nullable|string', // use ID (1–15)
-            'photo'             => 'nullable|image|max:51200', // for file upload
+            'photo_1'             => 'nullable|image|max:51200',
+            'photo_2'             => 'nullable|image|max:51200',
+            'photo_3'             => 'nullable|image|max:51200',
+            'photo_4'             => 'nullable|image|max:51200',
             'floor_plan'        => 'nullable|image|max:51200',
             'size'              => 'nullable|numeric',
             'schedules' => 'nullable|array',
@@ -178,11 +181,23 @@ class PropertyController extends Controller
         ]);
 
         // ✅ Handle photo upload
-        $photoPath = null;
+        $photoPath1 = null;
+        $photoPath2 = null;
+        $photoPath3 = null;
+        $photoPath4 = null;
         $floorPlanPath = null;
 
-        if ($request->hasFile('photo')) {
-            $photoPath = $request->file('photo')->store('uploads/photos', 'public');
+        if ($request->hasFile('photo_1')) {
+            $photoPath1 = $request->file('photo_1')->store('uploads/photos', 'public');
+        }
+        if ($request->hasFile('photo_2')) {
+            $photoPath2 = $request->file('photo_2')->store('uploads/photos', 'public');
+        }
+        if ($request->hasFile('photo_3')) {
+            $photoPath3 = $request->file('photo_3')->store('uploads/photos', 'public');
+        }
+        if ($request->hasFile('photo_4')) {
+            $photoPath4 = $request->file('photo_4')->store('uploads/photos', 'public');
         }
 
         if ($request->hasFile('floor_plan')) {
@@ -198,7 +213,10 @@ class PropertyController extends Controller
             'lng'           => $validatedData['lng'] ?? null,
             'price'         => $validatedData['price'] ?? null,
             'property_type' => $validatedData['property_type'] ?? null,
-            'photo'         => $photoPath,
+            'photo_1' => $photoPath1,
+            'photo_2' => $photoPath2,
+            'photo_3' => $photoPath3,
+            'photo_4' => $photoPath4,
             'floor_plan'    => $floorPlanPath,
             'status'        => 0, // default inactive
             'size'          => $validatedData['size'] ?? null,

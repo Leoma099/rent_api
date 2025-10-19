@@ -23,7 +23,10 @@ class CreatePropertiesTable extends Migration
             $table->decimal('lng', 10, 7)->nullable();
             $table->decimal('price', 10, 2)->nullable();
             $table->string('property_type')->nullable();
-            $table->longText('photo')->nullable();
+            $table->longText('photo_1')->nullable();
+            $table->longText('photo_2')->nullable();
+            $table->longText('photo_3')->nullable();
+            $table->longText('photo_4')->nullable();
             $table->longText('floor_plan')->nullable();
             $table->tinyInteger('status')->default(0);
             $table->tinyInteger('is_featured')->default(0);  // inactive by default
