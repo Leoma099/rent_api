@@ -270,18 +270,31 @@ class PropertyController extends Controller
 
         
         // ✅ Send property suggestion email to all tenants
-        try 
-        {   
+        try {   
+            \Log::info('Starting to queue property suggestion emails...');
+
             $tenants = User::where('role', 3)->with('account')->get();
+            \Log::info('Tenants found: ' . $tenants->count());
+
             foreach ($tenants as $tenant) {
-                Mail::to($tenant->account->email)
-                    ->queue(new PropertySuggestionMail($property));
+                $email = $tenant->account->email ?? null;
+
+                if ($email) {
+                    \Log::info('Queueing email for: ' . $email);
+
+                    Mail::to($email)->queue(new PropertySuggestionMail($property));
+
+                    \Log::info('Queued email for: ' . $email);
+                } else {
+                    \Log::warning('Skipped tenant — no email address found.');
+                }
             }
-        }
-        catch (\Exception $e) 
-        {
+
+            \Log::info('Finished queuing all property suggestion emails.');
+        } catch (\Exception $e) {
             \Log::error('Failed to send property suggestion email: ' . $e->getMessage());
         }
+
 
         return response()->json(['message' => 'Property record successfully created', 'property' => $property->load('schedules')], 201);
     }
