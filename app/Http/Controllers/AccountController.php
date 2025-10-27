@@ -68,11 +68,19 @@ class AccountController extends Controller
             'email' => 'required|email|unique:accounts',
             'mobile_number' => 'required',
             'username' => 'required|unique:users',
-            'password' => 'required',
+            'password' => [
+                'required',
+                'string',
+                'min:8', // at least 8 characters
+                'regex:/[A-Z]/', // must contain uppercase
+                'regex:/[a-z]/', // must contain lowercase
+                'regex:/[0-9]/', // must contain a number
+                'regex:/[@$!%*?&]/', // must contain special character
+            ],
         ]);
 
-         // Create the user first
-         $user = User::create([
+        // Create the user first
+        $user = User::create([
             'username' => $request->username,
             'password' => Hash::make($request->password),
             'role' => $request->role,

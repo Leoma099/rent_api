@@ -329,60 +329,97 @@ class PropertyController extends Controller
     {
         $property = Property::findOrFail($id);
 
-        // Handle photo
-        if ($request->hasFile('photo'))
-        {
-            $property->photo = $request->file('photo')->store('uploads/photos', 'public');
+        // Only landlords can update their own property
+        if (Auth::user()->role != 2 || $property->landlord_id != Auth::id()) {
+            return response()->json(['message' => 'Forbidden'], 403);
         }
 
-        // Handle floor plan
-        if ($request->hasFile('floor_plan'))
-        {
-            $property->floor_plan = $request->file('floor_plan')->store('uploads/photos', 'public');
+        // Decode schedules JSON string to array
+        if ($request->has('schedules')) {
+            $request->merge([
+                'schedules' => json_decode($request->input('schedules'), true)
+            ]);
         }
 
-        $property->update([
-            'title'         =>  $request->title,
-            'description'   =>  $request->description,
-            'address'       =>  $request->address,
-            'lat'           =>  $request->lat,
-            'lng'           =>  $request->lng,
-            'price'         =>  $request->price,
-            'property_type' =>  $request->property_type,
-            'size'          =>  $request->size,
-            'status'        =>  $request->status,
-            'propertyStats'=>  $request->propertyStats,
-            'is_featured'   =>  $request->is_featured,
+        // Decode landmarks JSON string to array
+        if ($request->has('landmarks')) {
+            $request->merge([
+                'landmarks' => json_decode($request->input('landmarks'), true)
+            ]);
+        }
+
+        // Validate request
+        $validatedData = $request->validate([
+            'title'             => 'required|string|max:255',
+            'description'       => 'nullable|string',
+            'address'           => 'nullable|string|max:255',
+            'lat'               => 'nullable|numeric',
+            'lng'               => 'nullable|numeric',
+            'price'             => 'nullable|numeric',
+            'property_type'     => 'nullable|string',
+            'photo_1'           => 'nullable|image|max:51200',
+            'photo_2'           => 'nullable|image|max:51200',
+            'photo_3'           => 'nullable|image|max:51200',
+            'photo_4'           => 'nullable|image|max:51200',
+            'floor_plan'        => 'nullable|image|max:51200',
+            'size'              => 'nullable|numeric',
+            'status'            => 'nullable|integer',
+            'propertyStats'     => 'nullable|integer',
+            'is_featured'       => 'nullable|integer',
+            'schedules'         => 'nullable|array',
+            'schedules.*.available_day' => 'required_with:schedules|string',
+            'schedules.*.start_time'    => 'required_with:schedules|date_format:H:i',
+            'schedules.*.end_time'      => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
+            'landmarks'         => 'nullable|array',
+            'landmarks.*.name'  => 'required_with:landmarks|string|max:255',
+            'landmarks.*.vicinity' => 'nullable|string|max:255',
+            'landmarks.*.distance' => 'nullable|numeric',
+            'landmarks.*.lat'   => 'nullable|numeric',
+            'landmarks.*.lng'   => 'nullable|numeric',
         ]);
 
-        // ✅ Handle schedules
-        if ($request->has('schedules'))
-        {
-            $schedules = json_decode($request->input('schedules'), true);
-            $property->schedules()->delete(); // remove old schedules
+        // Handle photo uploads individually
+        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4', 'floor_plan'] as $photoField) {
+            if ($request->hasFile($photoField)) {
+                $property->$photoField = $request->file($photoField)->store('uploads/photos', 'public');
+            }
+        }
 
-            foreach ($schedules as $sched)
-            {
+        // Update property basic fields
+        $property->update([
+            'title'         => $validatedData['title'],
+            'description'   => $validatedData['description'] ?? $property->description,
+            'address'       => $validatedData['address'] ?? $property->address,
+            'lat'           => $validatedData['lat'] ?? $property->lat,
+            'lng'           => $validatedData['lng'] ?? $property->lng,
+            'price'         => $validatedData['price'] ?? $property->price,
+            'property_type' => $validatedData['property_type'] ?? $property->property_type,
+            'size'          => $validatedData['size'] ?? $property->size,
+            'status'        => $validatedData['status'] ?? $property->status,
+            'propertyStats' => $validatedData['propertyStats'] ?? $property->propertyStats,
+            'is_featured'   => $validatedData['is_featured'] ?? $property->is_featured,
+        ]);
+
+        // Update schedules
+        if (!empty($validatedData['schedules'])) {
+            $property->schedules()->delete();
+            foreach ($validatedData['schedules'] as $sched) {
                 $property->schedules()->create([
                     'landlord_id'   => $property->landlord_id,
-                    'available_day' => $sched['available_day'] ?? null,
-                    'start_time'    => $sched['start_time'] ?? null,
-                    'end_time'      => $sched['end_time'] ?? null,
+                    'available_day' => $sched['available_day'],
+                    'start_time'    => $sched['start_time'],
+                    'end_time'      => $sched['end_time'],
                 ]);
             }
         }
 
-        // ✅ Handle landmarks
-        if ($request->has('landmarks'))
-        {
-            $landmarks = json_decode($request->input('landmarks'), true);
-            $property->landmarks()->delete(); // remove old landmarks
-
-            foreach ($landmarks as $lm)
-            {
+        // Update landmarks
+        if (!empty($validatedData['landmarks'])) {
+            $property->landmarks()->delete();
+            foreach ($validatedData['landmarks'] as $lm) {
                 $property->landmarks()->create([
                     'landlord_id' => $property->landlord_id,
-                    'name'        => $lm['name'] ?? null,
+                    'name'        => $lm['name'],
                     'vicinity'    => $lm['vicinity'] ?? null,
                     'distance'    => $lm['distance'] ?? null,
                     'lat'         => $lm['lat'] ?? null,
@@ -391,9 +428,9 @@ class PropertyController extends Controller
             }
         }
 
+        // Notify landlord
         $user = Auth::user();
         if ($user->role === 2) {
-            // Notify landlord themselves
             $user->notify(new \App\Notifications\SystemNotifications(
                 'Property Updated',
                 'You have updated your property: ' . $property->title

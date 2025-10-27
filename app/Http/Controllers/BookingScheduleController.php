@@ -92,13 +92,13 @@ class BookingScheduleController extends Controller
         // Notify landlord
         $booking->landlord->notify(new SystemNotifications(
             "Booking Schedule",
-            "{$tenantName} has booked a schedule to visit your property <strong>{$propertyName}</strong>"
+            "{$tenantName} has booked a schedule to visit your property {$propertyName}"
         ));
 
         // Notify tenant
         $booking->tenant->notify(new SystemNotifications(
             "Booking Schedule",
-            "You have successfully booked a visit in <strong>{$propertyName}</strong>"
+            "You have successfully booked a visit in {$propertyName}"
         ));
 
         return response()->json([
@@ -137,7 +137,7 @@ class BookingScheduleController extends Controller
         // Notify landlord (confirmation)
         $booking->landlord->notify(new SystemNotifications(
             "Booking Status",
-            "You have updated the status of <strong>{$tenantName}</strong>"
+            "You have updated the status of {$tenantName}"
         ));
 
         // Notify tenant depending on the new status
@@ -145,13 +145,13 @@ class BookingScheduleController extends Controller
             // ✅ Approved
             $booking->tenant->notify(new SystemNotifications(
                 "Booking Status",
-                "Your booking status has been approved to visit <strong>{$propertyName}</strong>"
+                "Your booking status has been approved to visit $propertyName}"
             ));
         } elseif ($request->status == 0 || $request->status == 2 || $request->status == 3) {
             // ❌ Pending, rejected, or canceled
             $booking->tenant->notify(new SystemNotifications(
                 "Booking Status",
-                "Your booking status hasn't been approved or deleted to visit <strong>{$propertyName}</strong>"
+                "Your booking status hasn't been approved or deleted to visit {$propertyName}"
             ));
         }
 
@@ -174,7 +174,7 @@ class BookingScheduleController extends Controller
         if ($booking->status != 1) {
             $booking->tenant->notify(new SystemNotifications(
                 "Booking Status",
-                "Your booking status hasn't been approved or deleted to visit <strong>{$propertyName}</strong>"
+                "Your booking status hasn't been approved or deleted to visit $propertyName}"
             ));
         }
 

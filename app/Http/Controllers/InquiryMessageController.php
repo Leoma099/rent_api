@@ -12,8 +12,19 @@ class InquiryMessageController extends Controller
 {
     public function index(Inquiry $inquiry)
     {
+        $user = Auth::user();
+
+        // 🔐 Ensure user owns this inquiry (either tenant or landlord)
+        if (
+            $user->id !== $inquiry->tenant_id &&
+            $user->id !== $inquiry->landlord_id
+        ) {
+            return response()->json(['message' => 'Unauthorized access'], 403);
+        }
+
+        // ✅ Load messages with sender info
         $messages = $inquiry->messages()
-            ->with('sender')
+            ->with('sender.account')
             ->orderBy('created_at', 'asc')
             ->get();
 
@@ -50,14 +61,14 @@ class InquiryMessageController extends Controller
             // 🧍‍♂️ Tenant sends a message → Notify landlord
             $landlord->notify(new SystemNotifications(
                 "Inquire Property",
-                "{$tenantName} has inquired for <strong>{$propertyName}</strong>"
+                "{$tenantName} has inquired for {$propertyName}"
             ));
         } 
         elseif ($user->id === $landlord->id) {
             // 🧑‍💼 Landlord replies → Notify tenant
             $tenant->notify(new SystemNotifications(
                 "Inquiry Property",
-                "From landlord regarding the <strong>{$propertyName}</strong>: \"{$inquiryMessage}\""
+                "From landlord regarding the {$propertyName}: \"{$inquiryMessage}\""
             ));
         }
 

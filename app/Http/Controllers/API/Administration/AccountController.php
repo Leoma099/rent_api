@@ -176,8 +176,17 @@ class AccountController extends Controller
 
     public function destroy($id)
     {
-        Account::findOrFail($id)->delete();
-        return response()->json(['message' => 'Account record deleted']);
+        $account = Account::findOrFail($id);
+
+        // Delete related user first (if exists)
+        if ($account->user) {
+            $account->user->delete();
+        }
+
+        // Then delete the account
+        $account->delete();
+
+        return response()->json(['message' => 'Account and related user deleted successfully.']);
     }
 
     public function clientDataInfo()

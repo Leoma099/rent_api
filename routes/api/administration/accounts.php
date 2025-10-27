@@ -11,6 +11,7 @@
         ], function()
         {
             Route::put('/status', 'AccountController@updateStatus');
+            Route::delete('', 'AccountController@destroy');
         });
     });
 
