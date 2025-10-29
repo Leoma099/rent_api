@@ -161,11 +161,11 @@ class PropertyController extends Controller
             'lng'               => 'nullable|numeric', // fixed name + rule
             'price'             => 'nullable|numeric', // decimal -> numeric
             'property_type'     => 'nullable|string', // use ID (1–15)
-            'photo_1'             => 'nullable|image|max:51200',
-            'photo_2'             => 'nullable|image|max:51200',
-            'photo_3'             => 'nullable|image|max:51200',
-            'photo_4'             => 'nullable|image|max:51200',
-            'floor_plan'        => 'nullable|image|max:51200',
+            'photo_1'             => 'nullable|image',
+            'photo_2'             => 'nullable|image',
+            'photo_3'             => 'nullable|image',
+            'photo_4'             => 'nullable|image',
+            'floor_plan'        => 'nullable|image',
             'size'              => 'nullable|numeric',
             'schedules' => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
