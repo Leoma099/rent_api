@@ -63,4 +63,10 @@ class ScheduleController extends Controller
             'schedule' => $schedule->load('property', 'landlord')
         ], 201);
     }
+
+    public function destroy($id)
+    {
+        $schedule = Schedule::findOrFail($id);
+        return response()->json($schedule);
+    }
 }

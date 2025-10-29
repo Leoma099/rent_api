@@ -336,9 +336,15 @@ class PropertyController extends Controller
 
         // Decode schedules JSON string to array
         if ($request->has('schedules')) {
-            $request->merge([
-                'schedules' => json_decode($request->input('schedules'), true)
-            ]);
+            $schedules = json_decode($request->input('schedules'), true);
+
+            // Convert times to H:i format
+            foreach ($schedules as &$sched) {
+                $sched['start_time'] = \Carbon\Carbon::parse($sched['start_time'])->format('H:i');
+                $sched['end_time']   = \Carbon\Carbon::parse($sched['end_time'])->format('H:i');
+            }
+
+            $request->merge(['schedules' => $schedules]);
         }
 
         // Decode landmarks JSON string to array
@@ -368,8 +374,8 @@ class PropertyController extends Controller
             'is_featured'       => 'nullable|integer',
             'schedules'         => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
-            'schedules.*.start_time'    => 'required_with:schedules|date_format:H:i',
-            'schedules.*.end_time'      => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
+            'schedules.*.start_time' => 'required_with:schedules|date_format:H:i',
+            'schedules.*.end_time'   => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
             'landmarks'         => 'nullable|array',
             'landmarks.*.name'  => 'required_with:landmarks|string|max:255',
             'landmarks.*.vicinity' => 'nullable|string|max:255',

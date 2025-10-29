@@ -56,7 +56,17 @@ class ForgotPasswordController extends Controller
         $request->validate([
             'email' => 'required|email',
             'token' => 'required|string',
-            'password' => 'required|string|min:8|confirmed'
+            'password' => 'required|string|min:8|confirmed',
+            'password' => [
+                'required',
+                'string',
+                'min:8',
+                'confirmed', // at least 8 characters
+                'regex:/[A-Z]/', // must contain uppercase
+                'regex:/[a-z]/', // must contain lowercase
+                'regex:/[0-9]/', // must contain a number
+                'regex:/[@$!%*?&]/', // must contain special character
+            ],
         ]);
 
         $account = Account::where('email', $request->email)->first();

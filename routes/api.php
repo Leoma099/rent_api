@@ -103,6 +103,7 @@ Route::middleware('auth:sanctum')->group(function ()
     // SCHEDULE
     Route::get('/schedules', 'ScheduleController@index');
     Route::post('/schedules', 'ScheduleController@store');
+    Route::delete('/schedule/{id}', 'ScheduleController@destroy');
 
     // LANDMARK
     Route::get('/landmarks', 'LandmarkController@index');
