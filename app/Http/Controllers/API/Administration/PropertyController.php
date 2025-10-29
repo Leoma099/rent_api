@@ -133,27 +133,29 @@ class PropertyController extends Controller
 
         // ✅ Validate the request including the photo file
         $validatedData = $request->validate([
-            'title'             => 'required|string|max:255', // changed from title
+            'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
             'address'           => 'nullable|string|max:255',
-            'lat'               => 'nullable|numeric', // fixed name + rule
-            'lng'               => 'nullable|numeric', // fixed name + rule
-            'price'             => 'nullable|numeric', // decimal -> numeric
-            'property_type'     => 'nullable|string', // use ID (1–15)
-            'photo'             => 'nullable|image|max:51200', // for file upload
-            'floor_plan'        => 'nullable|image|max:51200',
+            'lat'               => 'nullable|numeric',
+            'lng'               => 'nullable|numeric',
+            'price'             => 'nullable|numeric',
+            'property_type'     => 'nullable|string',
+            'photo_1'           => 'nullable',
+            'photo_2'           => 'nullable',
+            'photo_3'           => 'nullable',
+            'photo_4'           => 'nullable',
+            'floor_plan'        => 'nullable',
             'size'              => 'nullable|numeric',
-            'schedules' => 'nullable|array',
+            'schedules'         => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
-            'schedules.*.start_time' => 'required_with:schedules|date_format:H:i',
-            'schedules.*.end_time' => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
-            'landmarks' => 'nullable|array',
+            'schedules.*.start_time'    => 'required_with:schedules|date_format:H:i',
+            'schedules.*.end_time'      => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
+            'landmarks'         => 'nullable|array',
             'landmarks.*.name' => 'required_with:landmarks|string|max:255',
             'landmarks.*.vicinity' => 'nullable|string|max:255',
             'landmarks.*.distance' => 'nullable|numeric',
-            'landmarks.*.lat' => 'nullable|numeric',
-            'landmarks.*.lng' => 'nullable|numeric',
-
+            'landmarks.*.lat'   => 'nullable|numeric',
+            'landmarks.*.lng'   => 'nullable|numeric',
         ]);
 
         // ✅ Handle photo upload
@@ -403,6 +405,57 @@ class PropertyController extends Controller
         $property = Property::findOrFail($id);
         $property->status = 1; // Active
         $property->save();
+
+        // Notify landlord that admin approved their property
+        $landlord = $property->landlord;
+        if ($landlord) {
+            $landlord->notify(new SystemNotifications(
+                'Property Approved',
+                'Your property "' . $property->title . '" has been approved by the admin.'
+            ));
+        }
+
+        // ✅ Send property suggestion email to all tenants
+        try {   
+            \Log::info('Starting to queue property suggestion emails...', [
+                'property_id' => $property->id ?? null,
+                'property_title' => $property->title ?? null,
+            ]);
+
+            $tenants = User::where('role', 3)->with('account')->get();
+            \Log::info('Tenants found', ['count' => $tenants->count()]);
+
+            foreach ($tenants as $tenant) {
+                $email = $tenant->account->email ?? null;
+
+                if ($email) {
+                    \Log::info('Queueing email', [
+                        'tenant_id' => $tenant->id,
+                        'email' => $email,
+                    ]);
+
+                    Mail::to($email)->queue(new PropertySuggestionMail($property));
+
+                    \Log::info('Email queued successfully', [
+                        'tenant_id' => $tenant->id,
+                        'email' => $email,
+                    ]);
+                } else {
+                    \Log::warning('Skipped tenant — no email address found', [
+                        'tenant_id' => $tenant->id,
+                    ]);
+                }
+            }
+
+            \Log::info('Finished queuing all property suggestion emails', [
+                'total_tenants' => $tenants->count(),
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send property suggestion emails', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
 
         return response()->json(['message' => 'Property approved successfully', 'property' => $property]);
     }

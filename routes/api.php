@@ -77,7 +77,6 @@ Route::middleware('auth:sanctum')->group(function ()
     Route::put('/properties/{id}/approved', [PropertyController::class, 'approved']);
     Route::get('/totalPendingProperties', 'PropertyController@pendingProperty');
 
-    
 
     Route::get('/accounts', [AccountController::class, 'index']);
     Route::get('/accounts/{id}', [AccountController::class, 'show']);

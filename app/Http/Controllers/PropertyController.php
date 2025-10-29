@@ -152,56 +152,37 @@ class PropertyController extends Controller
             ]);
         }
 
-        // ✅ Validate the request including the photo file
+        // Validate request
         $validatedData = $request->validate([
-            'title'             => 'required|string|max:255', // changed from title
+            'title'             => 'required|string|max:255',
             'description'       => 'nullable|string',
             'address'           => 'nullable|string|max:255',
-            'lat'               => 'nullable|numeric', // fixed name + rule
-            'lng'               => 'nullable|numeric', // fixed name + rule
-            'price'             => 'nullable|numeric', // decimal -> numeric
-            'property_type'     => 'nullable|string', // use ID (1–15)
-            'photo_1'             => 'nullable|image',
-            'photo_2'             => 'nullable|image',
-            'photo_3'             => 'nullable|image',
-            'photo_4'             => 'nullable|image',
+            'lat'               => 'nullable|numeric',
+            'lng'               => 'nullable|numeric',
+            'price'             => 'nullable|numeric',
+            'property_type'     => 'nullable|string',
+            'photo_1'           => 'nullable|image',
+            'photo_2'           => 'nullable|image',
+            'photo_3'           => 'nullable|image',
+            'photo_4'           => 'nullable|image',
             'floor_plan'        => 'nullable|image',
             'size'              => 'nullable|numeric',
-            'schedules' => 'nullable|array',
+            'schedules'         => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
             'schedules.*.start_time' => 'required_with:schedules|date_format:H:i',
-            'schedules.*.end_time' => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
+            'schedules.*.end_time'   => 'required_with:schedules|date_format:H:i|after:schedules.*.start_time',
             'landmarks' => 'nullable|array',
             'landmarks.*.name' => 'required_with:landmarks|string|max:255',
             'landmarks.*.vicinity' => 'nullable|string|max:255',
             'landmarks.*.distance' => 'nullable|numeric',
             'landmarks.*.lat' => 'nullable|numeric',
             'landmarks.*.lng' => 'nullable|numeric',
-
         ]);
 
-        // ✅ Handle photo upload
-        $photoPath1 = null;
-        $photoPath2 = null;
-        $photoPath3 = null;
-        $photoPath4 = null;
-        $floorPlanPath = null;
-
-        if ($request->hasFile('photo_1')) {
-            $photoPath1 = $request->file('photo_1')->store('uploads/photos', 'public');
-        }
-        if ($request->hasFile('photo_2')) {
-            $photoPath2 = $request->file('photo_2')->store('uploads/photos', 'public');
-        }
-        if ($request->hasFile('photo_3')) {
-            $photoPath3 = $request->file('photo_3')->store('uploads/photos', 'public');
-        }
-        if ($request->hasFile('photo_4')) {
-            $photoPath4 = $request->file('photo_4')->store('uploads/photos', 'public');
-        }
-
-        if ($request->hasFile('floor_plan')) {
-            $floorPlanPath = $request->file('floor_plan')->store('uploads/photos', 'public');
+        // Handle photo upload
+        $photos = [];
+        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4', 'floor_plan'] as $photoField) {
+            $photos[$photoField] = $request->hasFile($photoField) ? $request->file($photoField)->store('uploads/photos', 'public') : null;
         }
 
         $property = Property::create([
@@ -213,39 +194,29 @@ class PropertyController extends Controller
             'lng'           => $validatedData['lng'] ?? null,
             'price'         => $validatedData['price'] ?? null,
             'property_type' => $validatedData['property_type'] ?? null,
-            'photo_1' => $photoPath1,
-            'photo_2' => $photoPath2,
-            'photo_3' => $photoPath3,
-            'photo_4' => $photoPath4,
-            'floor_plan'    => $floorPlanPath,
-            'status'        => 0, // default inactive
+            'photo_1'       => $photos['photo_1'],
+            'photo_2'       => $photos['photo_2'],
+            'photo_3'       => $photos['photo_3'],
+            'photo_4'       => $photos['photo_4'],
+            'floor_plan'    => $photos['floor_plan'],
+            'status'        => 0, // inactive, needs admin approval
             'size'          => $validatedData['size'] ?? null,
             'is_featured'   => 0,
             'propertyStats' => 1,
         ]);
 
-        // ✅ notify landlord (current user)
-        $landlord = Auth::user();
-        $landlord->notify(new SystemNotifications(
-            'New Property Added',
-            'You have added new property listing: ' . $property->title
-        ));
-
-        // ✅ notify admin (find first admin)
-        $admin = \App\Models\User::where('role', 1)->first();
-        if ($admin)
-        {
+        // Notify admin only
+        $admin = User::where('role', 1)->first();
+        if ($admin) {
             $admin->notify(new SystemNotifications(
                 'New Property Added',
-                $landlord->account->full_name . 'has added a new property listing:' . $property->title
+                Auth::user()->account->full_name . ' has added a new property listing: ' . $property->title
             ));
         }
 
-            // Create schedules if any
-        if (!empty($validatedData['schedules']))
-        {
-            foreach ($validatedData['schedules'] as $sched)
-            {
+        // Create schedules if any
+        if (!empty($validatedData['schedules'])) {
+            foreach ($validatedData['schedules'] as $sched) {
                 $property->schedules()->create([
                     'landlord_id' => Auth::id(),
                     'available_day' => $sched['available_day'],
@@ -255,6 +226,7 @@ class PropertyController extends Controller
             }
         }
 
+        // Create landmarks if any
         if (!empty($validatedData['landmarks'])) {
             foreach ($validatedData['landmarks'] as $landmark) {
                 $property->landmarks()->create([
@@ -268,35 +240,7 @@ class PropertyController extends Controller
             }
         }
 
-        
-        // ✅ Send property suggestion email to all tenants
-        try {   
-            \Log::info('Starting to queue property suggestion emails...');
-
-            $tenants = User::where('role', 3)->with('account')->get();
-            \Log::info('Tenants found: ' . $tenants->count());
-
-            foreach ($tenants as $tenant) {
-                $email = $tenant->account->email ?? null;
-
-                if ($email) {
-                    \Log::info('Queueing email for: ' . $email);
-
-                    Mail::to($email)->queue(new PropertySuggestionMail($property));
-
-                    \Log::info('Queued email for: ' . $email);
-                } else {
-                    \Log::warning('Skipped tenant — no email address found.');
-                }
-            }
-
-            \Log::info('Finished queuing all property suggestion emails.');
-        } catch (\Exception $e) {
-            \Log::error('Failed to send property suggestion email: ' . $e->getMessage());
-        }
-
-
-        return response()->json(['message' => 'Property record successfully created', 'property' => $property->load('schedules')], 201);
+        return response()->json(['message' => 'Property record successfully created. Waiting for admin approval.', 'property' => $property->load('schedules')], 201);
     }
 
     public function show($id)
@@ -484,7 +428,36 @@ class PropertyController extends Controller
         $property->status = 1; // Active
         $property->save();
 
-        return response()->json(['message' => 'Property approved successfully', 'property' => $property]);
+        // Notify landlord that admin approved their property
+        $landlord = $property->landlord;
+        if ($landlord) {
+            $landlord->notify(new SystemNotifications(
+                'Property Approved',
+                'Your property "' . $property->title . '" has been approved by the admin.'
+            ));
+        }
+
+        // Send property suggestion email to all tenants
+        try {
+            \Log::info('Starting to queue property suggestion emails...', ['property_id' => $property->id]);
+
+            $tenants = User::where('role', 3)->with('account')->get();
+            foreach ($tenants as $tenant) {
+                $email = $tenant->account->email ?? null;
+                if ($email) {
+                    Mail::to($email)->queue(new PropertySuggestionMail($property));
+                }
+            }
+
+            \Log::info('Finished queuing property suggestion emails', ['total_tenants' => $tenants->count()]);
+        } catch (\Exception $e) {
+            \Log::error('Failed to send property suggestion emails', [
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+        }
+
+        return response()->json(['message' => 'Property approved successfully and notifications sent.', 'property' => $property]);
     }
 
     public function updateFeatured(Request $request, $id)
