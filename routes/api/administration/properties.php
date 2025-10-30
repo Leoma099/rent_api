@@ -11,7 +11,8 @@
         ], function()
         {
             Route::delete('', 'PropertyController@destroy');
-        });
+            Route::get('', 'PropertyController@show');
+        },);
     })
 
 ?>
