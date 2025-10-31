@@ -9,48 +9,46 @@ use App\Models\Property;
 
 class InquiryController extends Controller
 {
-public function index(Request $request)
-{
-    $user = Auth::user();
-    $query = null;
+    public function index(Request $request)
+    {
+        $user = Auth::user();
+        $query = null;
 
-    // 🔹 If user is a landlord (role = 2)
-    if ($user->role === 2) {
-        $query = $user->receivedInquiries()
-            ->with('tenant.account', 'property', 'messages.sender')
-            ->latest();
+        // 🔹 If user is a landlord (role = 2)
+        if ($user->role === 2) {
+            $query = $user->receivedInquiries()
+                ->with('tenant.account', 'property', 'messages.sender')
+                ->latest();
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('tenant.account', function ($tenantQuery) use ($search) {
-                $tenantQuery->where('full_name', 'like', "%{$search}%");
-            });
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->whereHas('tenant.account', function ($tenantQuery) use ($search) {
+                    $tenantQuery->where('full_name', 'like', "%{$search}%");
+                });
+            }
         }
-    }
 
-    // 🔹 If user is a tenant (role = 3)
-    elseif ($user->role === 3) {
-        $query = $user->sentInquiries()
-            ->with('landlord.account', 'property', 'messages.sender')
-            ->latest();
+        // 🔹 If user is a tenant (role = 3)
+        elseif ($user->role === 3) {
+            $query = $user->sentInquiries()
+                ->with('landlord.account', 'property', 'messages.sender')
+                ->latest();
 
-        if ($request->filled('search')) {
-            $search = $request->search;
-            $query->whereHas('landlord.account', function ($landlordQuery) use ($search) {
-                $landlordQuery->where('full_name', 'like', "%{$search}%");
-            });
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->whereHas('landlord.account', function ($landlordQuery) use ($search) {
+                    $landlordQuery->where('full_name', 'like', "%{$search}%");
+                });
+            }
         }
+
+        // Handle users with no inquiries or invalid role
+        if (!$query) {
+            return response()->json(['message' => 'Invalid role or no inquiries found'], 403);
+        }
+
+        return response()->json($query->get());
     }
-
-    // Handle users with no inquiries or invalid role
-    if (!$query) {
-        return response()->json(['message' => 'Invalid role or no inquiries found'], 403);
-    }
-
-    return response()->json($query->get());
-}
-
-
 
     public function store(Request $request)
     {

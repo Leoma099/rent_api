@@ -178,16 +178,41 @@ class AccountController extends Controller
     {
         $account = Account::findOrFail($id);
 
-        // Delete related user first (if exists)
+        // ✅ Delete related user (login)
         if ($account->user) {
+
+            // ✅ Check if the user is a landlord (role = 2)
+            if ($account->user->role == 2) {
+
+                foreach ($account->properties as $property) {
+
+                    // ✅ These lines deleted — since photos are part of properties table
+                    // $property->photos()->delete();
+
+                    // ✅ Delete related property data only
+                    $property->landmarks()->delete();
+                    $property->bookings()->delete();
+                    $property->schedules()->delete();
+                    $property->inquiries()->delete();
+                    $property->leases()->delete();
+
+                    // ✅ Finally delete the property itself
+                    $property->delete();
+                }
+            }
+
+            // ✅ Delete the user record
             $account->user->delete();
         }
 
-        // Then delete the account
+        // ✅ Delete the account itself
         $account->delete();
 
-        return response()->json(['message' => 'Account and related user deleted successfully.']);
+        return response()->json([
+            'message' => 'Account and all related data deleted successfully.'
+        ]);
     }
+
 
     public function clientDataInfo()
     {

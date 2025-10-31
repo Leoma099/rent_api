@@ -34,8 +34,20 @@ class LandlordDashboardController extends Controller
 
     public function totalInquire()
     {
-        $totalInquire = Inquiry::count();
+        $user = auth()->user();
 
-        return response()->json(['total_inquire'=> $totalInquire]);
+        // ✅ Ensure only landlord (role = 2) can access
+        if ($user->role == 2) {
+            $totalInquire = Inquiry::where('landlord_id', $user->account->id)->count();
+
+            return response()->json([
+                'total_inquire' => $totalInquire
+            ]);
+        }
+
+        // 🚫 If not a landlord, deny access
+        return response()->json([
+            'message' => 'Unauthorized. Only landlords can view inquiry count.'
+        ], 403);
     }
 }

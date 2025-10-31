@@ -36,4 +36,10 @@ class Account extends Model
     {
         return $this->hasMany(BorrowNotification::class, 'notified_to', 'id');
     }
+
+    public function properties()
+    {
+        return $this->hasMany(Property::class, 'landlord_id');
+    }
+
 }
