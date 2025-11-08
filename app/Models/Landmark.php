@@ -17,7 +17,8 @@ class Landmark extends Model
         'vicinity',
         'distance',
         'lat',
-        'lng'
+        'lng',
+        'type',
     ];
 
     public function property()

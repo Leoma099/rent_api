@@ -21,7 +21,8 @@ class CreateLandmarksTable extends Migration
             $table->string('vicinity');        // Address or vicinity
             $table->decimal('distance', 8, 2); // e.g., 12345.67 km
             $table->decimal('lat', 10, 7);     // Latitude with 7 decimals
-            $table->decimal('lng', 10, 7); 
+            $table->decimal('lng', 10, 7);
+            $table->string('type'); 
             $table->timestamps();
         });
     }

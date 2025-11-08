@@ -370,6 +370,7 @@ class PropertyController extends Controller
         $property->schedules()->delete();
         $property->inquiries()->delete();
         $property->leases()->delete();
+        $property->landmarks()->delete(); // ✅ delete all related landmarks
 
         // Delete the property itself
         $property->delete();

@@ -43,6 +43,7 @@ class LandmarkController extends Controller
             'distance'    => 'nullable|numeric',
             'lat'         => 'required|numeric',
             'lng'         => 'required|numeric',
+            'type'        => 'required|string|max:255', 
         ]);
 
         $property = Property::findOrFail($validatedData['property_id']);
@@ -60,6 +61,7 @@ class LandmarkController extends Controller
             'distance'    => $validatedData['distance'],
             'lat'         => $validatedData['lat'],
             'lng'         => $validatedData['lng'],
+            'type'        => $validatedData['type']
         ]);
 
         return response()->json([

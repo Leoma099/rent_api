@@ -12,28 +12,6 @@ use App\Models\User;
 
 class PropertyController extends Controller
 {
-    public function featured()
-    {
-        $properties = Property::with('landlord.account', 'landmarks')
-            ->where('status', 1)
-            ->where('is_featured', true)
-            ->latest()
-            ->take(3)
-            ->get();
-
-        return response()->json($properties);
-    }
-
-    public function recentProperty()
-    {
-        $properties = Property::with('landlord.account', 'schedules', 'landmarks')
-            ->where('status', 1)
-            ->latest()
-            ->take(9)
-            ->get();
-
-        return response()->json($properties);
-    }
 
     public function index(Request $request)
     {
@@ -78,7 +56,7 @@ class PropertyController extends Controller
                 // ✅ Auto filter by property_type
                 if ($request->has('property_type') && $request->property_type != '')
                 {
-                    $query->where('property_type', $request->property_type);
+                    $query->where('property_type', 'like', '%' . $request->property_type . '%');
                 }
 
                 // ✅ Filter by address OR property title
@@ -88,7 +66,8 @@ class PropertyController extends Controller
                     $query->where(function($q) use ($search)
                     {
                         $q->where('address', 'like', '%' . $search . '%')
-                        ->orWhere('title', 'like', '%' . $search . '%');
+                        ->orWhere('title', 'like', '%' . $search . '%')
+                        ->orWhere('property_type', 'like', '%' . $search . '%');
                     });
                 }
 
@@ -115,14 +94,15 @@ class PropertyController extends Controller
                 $query->where(function($q) use ($search)
                 {
                     $q->where('address', 'like', '%' . $search . '%')
-                    ->orWhere('title', 'like', '%' . $search . '%');
+                    ->orWhere('title', 'like', '%' . $search . '%')
+                    ->orWhere('property_type', 'like', '%' . $search . '%');
                 });
             }
 
             // ✅ Add property_type filter for guests
             if ($request->has('property_type') && $request->property_type != '')
             {
-                $query->where('property_type', $request->property_type);
+                $query->where('property_type', 'like', '%' . $request->property_type . '%');
             }
 
             $properties = $query->latest()->get();
@@ -177,6 +157,7 @@ class PropertyController extends Controller
             'landmarks.*.distance' => 'nullable|numeric',
             'landmarks.*.lat' => 'nullable|numeric',
             'landmarks.*.lng' => 'nullable|numeric',
+            'landmarks.*.type' => 'nullable|string|max:255',
         ]);
 
         // Handle photo upload
@@ -236,6 +217,7 @@ class PropertyController extends Controller
                     'distance' => $landmark['distance'] ?? null,
                     'lat' => $landmark['lat'] ?? null,
                     'lng' => $landmark['lng'] ?? null,
+                    'type' => $landmark['type'] ?? null,
                 ]);
             }
         }
@@ -438,19 +420,22 @@ class PropertyController extends Controller
         }
 
         // Send property suggestion email to all tenants
-        try {
+        try
+        {
             \Log::info('Starting to queue property suggestion emails...', ['property_id' => $property->id]);
 
             $tenants = User::where('role', 3)->with('account')->get();
             foreach ($tenants as $tenant) {
                 $email = $tenant->account->email ?? null;
                 if ($email) {
-                    Mail::to($email)->queue(new PropertySuggestionMail($property));
+                    Mail::to($email)->send(new PropertySuggestionMail($property));
                 }
             }
 
             \Log::info('Finished queuing property suggestion emails', ['total_tenants' => $tenants->count()]);
-        } catch (\Exception $e) {
+        }
+        catch (\Exception $e)
+        {
             \Log::error('Failed to send property suggestion emails', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
@@ -542,12 +527,13 @@ class PropertyController extends Controller
         $propertyName = $property->title;
 
         // Delete related data
-        $property->schedules()->each(function($schedule) {
+        $property->schedules()->each(function ($schedule) {
             $schedule->bookings()->delete(); // delete bookings first
         });
         $property->schedules()->delete();
         $property->inquiries()->delete();
         $property->leases()->delete();
+        $property->landmarks()->delete(); // ✅ delete all related landmarks
 
         // Delete the property itself
         $property->delete();
@@ -596,6 +582,29 @@ class PropertyController extends Controller
             ->get();
 
         return response()->json($recommended);
+    }
+
+    public function featured()
+    {
+        $properties = Property::with('landlord.account', 'landmarks')
+            ->where('status', 1)
+            ->where('is_featured', true)
+            ->latest()
+            ->take(3)
+            ->get();
+
+        return response()->json($properties);
+    }
+
+    public function recentProperty()
+    {
+        $properties = Property::with('landlord.account', 'schedules', 'landmarks')
+            ->where('status', 1)
+            ->latest()
+            ->take(9)
+            ->get();
+
+        return response()->json($properties);
     }
 
 
