@@ -158,19 +158,6 @@ class AccountController extends Controller
             'status' => $request->status
         ]);
 
-        // ✅ Get the admin performing the action
-        $admin = auth()->user();
-
-        // ✅ Prepare readable data
-        $userName   = $account->full_name ?? $account->user->name ?? 'Unknown User';
-        $statusText = $request->status == 1 ? 'Active' : 'Inactive';
-
-        // ✅ Notify the admin themself
-        $admin->notify(new SystemNotifications(
-            'User Status Updated',
-            "You updated the status of {$userName} to {$statusText}."
-        ));
-
         // ✅ Return fresh updated data
         return response()->json([
             'message' => 'Status updated successfully',

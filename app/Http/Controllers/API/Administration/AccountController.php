@@ -89,6 +89,14 @@ class AccountController extends Controller
             'mobile_number' => $request->mobile_number,
         ]);
 
+        $admins = User::where('role', 1)->get();
+        foreach ($admins as $admin) {
+            $admin->notify(new SystemNotifications(
+                'New Account Created',
+                "{$account->full_name} has created a new account."
+            ));
+        }
+
         return response()->json([
             'message' => 'Account and user created successfully',
             'account' => $account,

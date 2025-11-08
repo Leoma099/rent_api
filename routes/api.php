@@ -32,7 +32,12 @@ Route::get('/properties/{id}/recommended', 'PropertyController@recommended');
 
 Route::post('/forgot-password', 'ForgotPasswordController@sendResetLink');
 Route::post('/reset-password', 'ForgotPasswordController@resetPassword');
-
+Route::group([
+    'namespace'  => 'API\Administration',
+    'prefix'     => 'admin'
+], function () {
+    Route::post('/register', 'AccountController@register'); // public
+});
 Route::group([
     'namespace'  => 'API\Administration',
     'prefix'     => 'admin',
