@@ -15,6 +15,7 @@ class Property extends Model
         'title',
         'description',
         'address',
+        'barangay',
         'lat',
         'lng',
         'price',
@@ -27,7 +28,8 @@ class Property extends Model
         'status',
         'is_featured',
         'size',
-        'propertyStats'
+        'propertyStats',
+        'last_viewed_at'
     ];
 
     public function schedules()

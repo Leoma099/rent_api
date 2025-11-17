@@ -68,9 +68,9 @@ class AccountController extends Controller
         $request->validate([
             'full_name' => 'required',
             'email' => 'required|email|unique:accounts',
-            'mobile_number' => 'required',
+            'mobile_number' => ['required','regex:/^09\d{9}$/','unique:accounts,mobile_number'],
             'username' => 'required|unique:users',
-            'password' => 'required',
+            'password' => ['required', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/']
         ]);
 
          // Create the user first

@@ -61,17 +61,40 @@ class InquiryMessageController extends Controller
             // 🧍‍♂️ Tenant sends a message → Notify landlord
             $landlord->notify(new SystemNotifications(
                 "Inquire Property",
-                "{$tenantName} has inquired for {$propertyName}"
+                "{$tenantName} has inquired for {$propertyName}",
+                "inquiry",
+                $inquiry->id  // pass inquiry ID
             ));
         } 
         elseif ($user->id === $landlord->id) {
             // 🧑‍💼 Landlord replies → Notify tenant
             $tenant->notify(new SystemNotifications(
                 "Inquiry Property",
-                "From landlord regarding the {$propertyName}: \"{$inquiryMessage}\""
+                "From landlord regarding the {$propertyName}: \"{$inquiryMessage}\"",
+                "inquiry",
+                $inquiry->id  // pass inquiry ID
             ));
         }
 
         return response()->json($message);
     }
+
+    public function markAsRead(Inquiry $inquiry)
+    {
+        $user = Auth::user();
+
+        // Ensure the user belongs to this inquiry
+        if ($user->id !== $inquiry->tenant_id && $user->id !== $inquiry->landlord_id) {
+            return response()->json(['message' => 'Unauthorized access'], 403);
+        }
+
+        // Update all messages not sent by the current user
+        $inquiry->messages()
+            ->where('sender_id', '!=', $user->id)
+            ->whereNull('read_at')
+            ->update(['read_at' => now()]);
+
+        return response()->json(['message' => 'Messages marked as read']);
+    }
+
 }

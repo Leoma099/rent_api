@@ -52,7 +52,7 @@ class PropertyController extends Controller
             else if (Auth::user()->role === 3) // Tenant
             {
                 $query = Property::with('landlord.account', 'schedules', 'landmarks')
-                    ->where('status', 1);
+                    ->where('status', 2);
 
                 // ✅ Auto filter by property_type
                 if ($request->has('property_type') && $request->property_type != '')
@@ -76,7 +76,7 @@ class PropertyController extends Controller
             else
             {
                 $properties = Property::with('landlord.account', 'schedules', 'landmarks')
-                    ->where('status', 1)
+                    ->where('status', 2)
                     ->latest()
                     ->get();
             }
@@ -85,7 +85,7 @@ class PropertyController extends Controller
         {
             // Guest (not logged in)
             $query = Property::with('landlord.account', 'schedules', 'landmarks')
-                ->where('status', 1);
+                ->where('status', 2);
 
             // ✅ Add search filter for guests
             if ($request->has('search') && $request->search != '')
@@ -260,7 +260,7 @@ class PropertyController extends Controller
         // add `is_booked` attribute to each schedule
         $property->schedules->each(function($schedule) {
             $schedule->is_booked = $schedule->bookings()
-                ->whereIn('status', [0, 1])
+                ->whereIn('status', [1, 2])
                 ->exists();
         });
 
@@ -404,7 +404,7 @@ class PropertyController extends Controller
         }
 
         $property = Property::findOrFail($id);
-        $property->status = 1; // Active
+        $property->status = 2; // Active
         $property->save();
 
         // Notify landlord that admin approved their property

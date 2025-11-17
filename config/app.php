@@ -232,4 +232,14 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Frontend URL
+    |--------------------------------------------------------------------------
+    |
+    | The URL of your frontend app, used for password reset and other links.
+    |
+    */
+    'frontend_url' => env('FRONTEND_URL', 'http://localhost:8080'),
+
 ];

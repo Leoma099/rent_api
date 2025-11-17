@@ -13,11 +13,14 @@ class SystemNotifications extends Notification
 
     protected $title;
     protected $message;
+    protected $inquiryId;
 
-    public function __construct($title, $message)
+    public function __construct($title, $message, $type = null, $inquiryId = null)
     {
         $this->title   = $title;
         $this->message = $message;
+        $this->type      = $type;       // e.g., 'inquiry'
+        $this->inquiryId = $inquiryId;  // store inquiry ID
     }
 
     public function via($notifiable)
@@ -30,6 +33,8 @@ class SystemNotifications extends Notification
         return [
             'title'   => $this->title,
             'message' => $this->message,
+            'type'       => $this->type,
+            'inquiry_id' => $this->inquiryId,
         ];
     }
 }

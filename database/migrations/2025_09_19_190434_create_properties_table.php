@@ -18,10 +18,11 @@ class CreatePropertiesTable extends Migration
             $table->bigInteger('landlord_id');
             $table->string('title');
             $table->text('description')->nullable();
-            $table->string('address')->nullable();
+            $table->string('address');
+            $table->string('barangay');
             $table->decimal('lat', 10, 7)->nullable();
             $table->decimal('lng', 10, 7)->nullable();
-            $table->decimal('price', 10, 2)->nullable();
+            $table->decimal('price', 10, 2);
             $table->string('property_type')->nullable();
             $table->longText('photo_1')->nullable();
             $table->longText('photo_2')->nullable();
@@ -30,8 +31,9 @@ class CreatePropertiesTable extends Migration
             $table->longText('floor_plan')->nullable();
             $table->tinyInteger('status')->default(0);
             $table->tinyInteger('is_featured')->default(0);  // inactive by default
-            $table->string('size')->nullable();
+            $table->string('size');
             $table->tinyInteger('propertyStats')->default(0);
+            $table->timeStamp('last_viewed_at')->nullable()->after('created_at');
             $table->timestamps();
         });
     }

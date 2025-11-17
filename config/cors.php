@@ -19,7 +19,9 @@ return [
 
     'allowed_methods' => ['*'],
 
-    'allowed_origins' => ['https://ctcommercialrental.netlify.app/'],
+    // 'allowed_origins' => ['https://ctcommercialrental.netlify.app/'],
+
+    'allowed_origins' => ['*'],
 
     'allowed_origins_patterns' => [],
 

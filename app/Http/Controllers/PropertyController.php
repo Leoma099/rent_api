@@ -40,8 +40,12 @@ class PropertyController extends Controller
                 if ($request->filled('search')) {
                     $search = $request->search;
 
-                    $query->where(function ($q) use ($search) {
-                        $q->where('title', 'like', "%{$search}%");
+                    $query->where(function($q) use ($search)
+                    {
+                        $q->where('address', 'like', '%' . $search . '%')
+                        ->orWhere('title', 'like', '%' . $search . '%')
+                        ->orWhere('property_type', 'like', '%' . $search . '%')
+                        ->orWhere('barangay', 'like', '%' . $search . '%');
                     });
                 }
 
@@ -51,12 +55,18 @@ class PropertyController extends Controller
             else if (Auth::user()->role === 3) // Tenant
             {
                 $query = Property::with('landlord.account', 'schedules', 'landmarks')
-                    ->where('status', 1);
+                    ->where('status', 2);
 
                 // ✅ Auto filter by property_type
                 if ($request->has('property_type') && $request->property_type != '')
                 {
                     $query->where('property_type', 'like', '%' . $request->property_type . '%');
+                }
+
+                // ✅ Auto filter by barangay
+                if ($request->has('barangay') && $request->barangay != '')
+                {
+                    $query->where('barangay', 'like', '%' . $request->barangay . '%');
                 }
 
                 // ✅ Filter by address OR property title
@@ -67,7 +77,8 @@ class PropertyController extends Controller
                     {
                         $q->where('address', 'like', '%' . $search . '%')
                         ->orWhere('title', 'like', '%' . $search . '%')
-                        ->orWhere('property_type', 'like', '%' . $search . '%');
+                        ->orWhere('property_type', 'like', '%' . $search . '%')
+                        ->orWhere('barangay', 'like', '%' . $search . '%');
                     });
                 }
 
@@ -76,7 +87,7 @@ class PropertyController extends Controller
             else
             {
                 $properties = Property::with('landlord.account', 'schedules', 'landmarks')
-                    ->where('status', 1)
+                    ->where('status', 2)
                     ->latest()
                     ->get();
             }
@@ -85,7 +96,7 @@ class PropertyController extends Controller
         {
             // Guest (not logged in)
             $query = Property::with('landlord.account', 'schedules', 'landmarks')
-                ->where('status', 1);
+                ->where('status', 2);
 
             // ✅ Add search filter for guests
             if ($request->has('search') && $request->search != '')
@@ -95,7 +106,8 @@ class PropertyController extends Controller
                 {
                     $q->where('address', 'like', '%' . $search . '%')
                     ->orWhere('title', 'like', '%' . $search . '%')
-                    ->orWhere('property_type', 'like', '%' . $search . '%');
+                    ->orWhere('property_type', 'like', '%' . $search . '%')
+                    ->orWhere('barangay', 'like', '%' . $search . '%');
                 });
             }
 
@@ -103,6 +115,12 @@ class PropertyController extends Controller
             if ($request->has('property_type') && $request->property_type != '')
             {
                 $query->where('property_type', 'like', '%' . $request->property_type . '%');
+            }
+
+            // ✅ Auto filter by barangay
+            if ($request->has('barangay') && $request->barangay != '')
+            {
+                $query->where('barangay', 'like', '%' . $request->barangay . '%');
             }
 
             $properties = $query->latest()->get();
@@ -135,18 +153,20 @@ class PropertyController extends Controller
         // Validate request
         $validatedData = $request->validate([
             'title'             => 'required|string|max:255',
-            'description'       => 'nullable|string',
-            'address'           => 'nullable|string|max:255',
-            'lat'               => 'nullable|numeric',
-            'lng'               => 'nullable|numeric',
-            'price'             => 'nullable|numeric',
-            'property_type'     => 'nullable|string',
+            'description'       => 'required|string',
+            'address'           => 'required|string|max:255',
+            'barangay'          => 'required|string',
+            'lat'               => 'required|numeric',
+            'lng'               => 'required|numeric',
+            'price'             => 'required|numeric',
+            'property_type'     => 'required|string',
             'photo_1'           => 'nullable|image',
             'photo_2'           => 'nullable|image',
             'photo_3'           => 'nullable|image',
             'photo_4'           => 'nullable|image',
             'floor_plan'        => 'nullable|image',
-            'size'              => 'nullable|numeric',
+            'size'              => 'required|numeric',
+
             'schedules' => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
             'schedules.*.start_time' => 'required_with:schedules|date_format:H:i',
@@ -171,6 +191,7 @@ class PropertyController extends Controller
             'title'         => $validatedData['title'],
             'description'   => $validatedData['description'] ?? null,
             'address'       => $validatedData['address'] ?? null,
+            'barangay'       => $validatedData['barangay'] ?? null,
             'lat'           => $validatedData['lat'] ?? null,
             'lng'           => $validatedData['lng'] ?? null,
             'price'         => $validatedData['price'] ?? null,
@@ -248,6 +269,12 @@ class PropertyController extends Controller
             $property->floor_plan = asset('storage/' . $property->floor_plan);
         }
 
+        // ✅ Update last_viewed_at ONLY if propertyStats is 1, 3, or 4
+        if (in_array($property->propertyStats, [1, 3, 4])) {
+            $property->last_viewed_at = now();
+            $property->save();
+        }
+
         return response()->json($property);
     }
 
@@ -282,9 +309,10 @@ class PropertyController extends Controller
 
         // Validate request
         $validatedData = $request->validate([
-            'title'             => 'required|string|max:255',
+            'title'             => 'nullable|string|max:255',
             'description'       => 'nullable|string',
             'address'           => 'nullable|string|max:255',
+            'barangay'          => 'nullable|string',
             'lat'               => 'nullable|numeric',
             'lng'               => 'nullable|numeric',
             'price'             => 'nullable|numeric',
@@ -322,6 +350,7 @@ class PropertyController extends Controller
             'title'         => $validatedData['title'],
             'description'   => $validatedData['description'] ?? $property->description,
             'address'       => $validatedData['address'] ?? $property->address,
+            'barangay'       => $validatedData['barangay'] ?? $property->barangay,
             'lat'           => $validatedData['lat'] ?? $property->lat,
             'lng'           => $validatedData['lng'] ?? $property->lng,
             'price'         => $validatedData['price'] ?? $property->price,
@@ -356,6 +385,7 @@ class PropertyController extends Controller
                     'distance'    => $lm['distance'] ?? null,
                     'lat'         => $lm['lat'] ?? null,
                     'lng'         => $lm['lng'] ?? null,
+                    'type'        => $lm['type'] ?? null,
                 ]);
             }
         }
@@ -407,7 +437,7 @@ class PropertyController extends Controller
         }
 
         $property = Property::findOrFail($id);
-        $property->status = 1; // Active
+        $property->status = 2; // Active
         $property->save();
 
         // Notify landlord that admin approved their property
@@ -599,9 +629,9 @@ class PropertyController extends Controller
     public function recentProperty()
     {
         $properties = Property::with('landlord.account', 'schedules', 'landmarks')
-            ->where('status', 1)
+            ->where('status', 2)
             ->latest()
-            ->take(9)
+            ->take(12)
             ->get();
 
         return response()->json($properties);

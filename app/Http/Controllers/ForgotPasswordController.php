@@ -47,7 +47,7 @@ class ForgotPasswordController extends Controller
         // ✅ Send reset email
         Mail::to($account->email)->send(new ResetPasswordMail($token, $account->email));
 
-        return response()->json(['message' => 'Reset link sent. Check your Mailtrap inbox.'], 200);
+        return response()->json(['message' => 'Reset link sent. Check your mail inbox.'], 200);
     }
 
     // ✅ Reset password

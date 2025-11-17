@@ -10,6 +10,7 @@
             'prefix' => '{id}'
         ], function()
         {
+            Route::put('', 'AccountController@update');
             Route::put('/status', 'AccountController@updateStatus');
             Route::delete('', 'AccountController@destroy');
         });

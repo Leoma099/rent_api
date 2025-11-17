@@ -18,6 +18,7 @@ class CreateInquiryMessagesTable extends Migration
             $table->bigInteger('inquiry_id');
             $table->bigInteger('sender_id');
             $table->text('message');
+            $table->timestamp('read_at')->nullable();
             $table->timestamps();
         });
         

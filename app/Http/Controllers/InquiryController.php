@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Inquiry;
 use App\Models\Property;
+use App\Notifications\SystemNotifications;
 
 class InquiryController extends Controller
 {
@@ -58,21 +59,51 @@ class InquiryController extends Controller
             'message'     => 'required|string',
         ]);
 
+        // Create or get existing inquiry
         $inquiry = Inquiry::firstOrCreate(
             [
                 'property_id' => $request->property_id,
                 'tenant_id'   => Auth::id(),
                 'landlord_id' => $request->landlord_id,
             ],
-            ['status' => 0] // Pending by default
+            ['status' => 0] // Pending
         );
 
+        // First message
         $message = $inquiry->messages()->create([
             'sender_id' => Auth::id(),
             'message'   => $request->message,
         ]);
 
-        return response()->json($inquiry->load(['property','tenant','landlord','messages.sender']));
+        /**
+         * 🔔 Notification for FIRST inquiry only
+         */
+        $inquiry->load(['tenant.account', 'landlord.account', 'property']);
+
+        $tenant       = $inquiry->tenant;
+        $landlord     = $inquiry->landlord;
+        $propertyName = $inquiry->property->title ?? 'a property';
+        $tenantName   = $tenant->account->full_name ?? $tenant->username;
+
+        // Tenant sends first inquiry → Notify landlord
+        $landlord->notify(new SystemNotifications(
+            "Inquiry Property",
+            "{$tenantName} is interested in {$propertyName}",
+            "inquiry",
+            $inquiry->id
+        ));
+
+        $tenant->notify(new SystemNotifications(
+            "Inquiry Property",
+            "You sent inquiry for {$propertyName}",
+            "inquiry",
+            $inquiry->id
+        ));
+
+        return response()->json(
+            $inquiry->load(['property','tenant','landlord','messages.sender'])
+        );
     }
+
 
 }

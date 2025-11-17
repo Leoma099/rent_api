@@ -51,9 +51,9 @@ class Lease extends Model
         $previousStatus = $this->status;
 
         // Pending → Active if current date >= start date
-        if ($this->status === 0 && $today->gte($startDate)) {
-            $this->status = 1;
-        }
+        // if ($this->status === 0 && $today->gte($startDate)) {
+        //     $this->status = 1;
+        // }
 
         // Expiring Soon (<=2 days left)
         $daysLeft = $today->diffInDays($endDate, false);

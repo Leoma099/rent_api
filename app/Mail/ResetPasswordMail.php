@@ -25,15 +25,28 @@ class ResetPasswordMail extends Mailable
      *
      * @return $this
      */
+    // public function build()
+    // {
+    //     $resetUrl = "http://localhost:8080/reset-password?token={$this->token}&email={$this->email}";
+
+    //     return $this->subject('Reset Your Password')
+    //         ->view('emails.reset-password')
+    //         ->with([
+    //             'resetUrl' => $resetUrl,
+    //             'email' => $this->email
+    //         ]);
+    // }
     public function build()
     {
-        $resetUrl = "http://localhost:8080/reset-password?token={$this->token}&email={$this->email}";
+        $frontendUrl = config('app.frontend_url');
+        $resetUrl = "{$frontendUrl}/reset-password?token={$this->token}&email={$this->email}";
 
         return $this->subject('Reset Your Password')
-            ->view('emails.reset-password')
-            ->with([
-                'resetUrl' => $resetUrl,
-                'email' => $this->email
-            ]);
+                    ->view('emails.reset-password')
+                    ->with([
+                        'resetUrl' => $resetUrl,
+                        'email' => $this->email
+                    ]);
     }
+
 }

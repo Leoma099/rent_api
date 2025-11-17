@@ -120,6 +120,7 @@ Route::middleware('auth:sanctum')->group(function ()
     // INQUIRY MESSAGES
     Route::get('/inquiries/{inquiry}/messages', [InquiryMessageController::class, 'index']);
     Route::post('/inquiries/{inquiry}/messages', [InquiryMessageController::class, 'store']);
+    Route::post('/inquiry/{inquiry}/messages/read', [InquiryMessageController::class, 'markAsRead']);
 
     // BOOKING
     Route::get('/bookings', 'BookingScheduleController@index');
