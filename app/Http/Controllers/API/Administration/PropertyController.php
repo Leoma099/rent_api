@@ -416,49 +416,31 @@ class PropertyController extends Controller
             ));
         }
 
-        // ✅ Send property suggestion email to all tenants
-        try {   
-            \Log::info('Starting to queue property suggestion emails...', [
-                'property_id' => $property->id ?? null,
-                'property_title' => $property->title ?? null,
-            ]);
+        // Send property suggestion email to all tenants
+        try
+        {
+            \Log::info('Starting to queue property suggestion emails...', ['property_id' => $property->id]);
 
             $tenants = User::where('role', 3)->with('account')->get();
-            \Log::info('Tenants found', ['count' => $tenants->count()]);
 
             foreach ($tenants as $tenant) {
-                $email = $tenant->account->email ?? null;
-
+                $email = $tenant->account->email ?? $tenant->email ?? null;
                 if ($email) {
-                    \Log::info('Queueing email', [
-                        'tenant_id' => $tenant->id,
-                        'email' => $email,
-                    ]);
-
                     Mail::to($email)->queue(new PropertySuggestionMail($property));
-
-                    \Log::info('Email queued successfully', [
-                        'tenant_id' => $tenant->id,
-                        'email' => $email,
-                    ]);
-                } else {
-                    \Log::warning('Skipped tenant — no email address found', [
-                        'tenant_id' => $tenant->id,
-                    ]);
                 }
             }
 
-            \Log::info('Finished queuing all property suggestion emails', [
-                'total_tenants' => $tenants->count(),
-            ]);
-        } catch (\Exception $e) {
+            \Log::info('Finished queuing property suggestion emails', ['total_tenants' => $tenants->count()]);
+        }
+        catch (\Exception $e)
+        {
             \Log::error('Failed to send property suggestion emails', [
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
         }
 
-        return response()->json(['message' => 'Property approved successfully', 'property' => $property]);
+        return response()->json(['message' => 'Property approved successfully and notifications sent.', 'property' => $property]);
     }
 
     public function updateFeatured(Request $request, $id)

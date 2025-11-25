@@ -50,11 +50,6 @@ class Lease extends Model
         $endDate = Carbon::parse($this->end_date);
         $previousStatus = $this->status;
 
-        // Pending → Active if current date >= start date
-        // if ($this->status === 0 && $today->gte($startDate)) {
-        //     $this->status = 1;
-        // }
-
         // Expiring Soon (<=2 days left)
         $daysLeft = $today->diffInDays($endDate, false);
         if ($this->status === 1 && $daysLeft <= 2 && $daysLeft >= 0) {
@@ -85,7 +80,7 @@ class Lease extends Model
             case 1:
                 $title = 'Lease Activated';
                 $messageLandlord = "You activated the lease for {$this->tenant->name} at {$this->property->title}.";
-                $messageTenant = "Your lease for {$this->property->title} has been approved and is now active.";
+                $messageTenant = "Your lease for {$this->property->title} has been approved and is now rented to you.";
                 break;
             case 2:
                 $title = 'Lease Expiring Soon';

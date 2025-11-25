@@ -12,6 +12,7 @@
         {
             Route::delete('', 'PropertyController@destroy');
             Route::get('', 'PropertyController@show');
+            Route::put('approved', 'PropertyController@approved');
         },);
     })
 

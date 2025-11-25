@@ -33,7 +33,7 @@ class LeaseController extends Controller
         $leases = $query->latest()->get();
 
         // Auto-update status for all leases before returning
-        $leases->each->autoUpdateStatus();
+        // $leases->each->autoUpdateStatus();
 
         return response()->json($leases);
     }
@@ -75,22 +75,39 @@ class LeaseController extends Controller
 
         // Only allow updating Pending to Active manually
         if ($lease->status === 0) {
-            $lease->status = 1;
+            $lease->status = 1; // Active
             $lease->save();
+
+            // Send notification to tenant
             $lease->sendStatusNotification();
+
+            // Automatically update property status to Rented (2)
+            if ($lease->property) {
+                $lease->property->propertyStats = 2; // Rented
+                $lease->property->save();
+            }
         }
 
         return response()->json(['message' => 'Lease status updated successfully', 'lease' => $lease]);
     }
 
-    // Delete a lease
     public function destroy($id)
     {
         $lease = Lease::where('landlord_id', Auth::id())->findOrFail($id);
+
+        // Update property status to AVAILABLE again (2)
+        $property = $lease->property;
+        if ($property) {
+            $property->propertyStats = 1;
+            $property->save();
+        }
+
+        // Delete the lease
         $lease->delete();
 
         return response()->json(['message' => 'Lease deleted successfully']);
     }
+
 
     // Total leases
     public function totalLease()

@@ -4,17 +4,29 @@ namespace App\Console;
 
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
-use App\Models\Lease;
 
 class Kernel extends ConsoleKernel
 {
     protected function schedule(Schedule $schedule)
     {
-        // Automatically check lease status every minute
+        // Lease update: run once daily at 8 AM
+        $schedule->command('lease:update-status')
+            ->dailyAt('08:00')
+            ->withoutOverlapping();
+
+        // Properties set inactive: run once daily at 8:10 AM
+        $schedule->command('properties:set-inactive')
+            ->dailyAt('08:10')
+            ->withoutOverlapping();
+
+        // Queue emails: run every 5 minutes
+        $schedule->command('queue:work --once --tries=3')
+            ->everyFiveMinutes();
+
+        // Optional: keep a small log for debugging
         $schedule->call(function () {
-            Lease::with(['tenant', 'property', 'landlord'])->get()
-                ->each->autoUpdateStatus();
-        })->everyMinute();
+            \Log::info('CRON RAN AT: ' . now());
+        })->everyFiveMinutes();
     }
 
     protected function commands()

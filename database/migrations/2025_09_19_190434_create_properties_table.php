@@ -28,7 +28,6 @@ class CreatePropertiesTable extends Migration
             $table->longText('photo_2')->nullable();
             $table->longText('photo_3')->nullable();
             $table->longText('photo_4')->nullable();
-            $table->longText('floor_plan')->nullable();
             $table->tinyInteger('status')->default(0);
             $table->tinyInteger('is_featured')->default(0);  // inactive by default
             $table->string('size');

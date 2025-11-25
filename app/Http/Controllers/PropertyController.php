@@ -164,9 +164,7 @@ class PropertyController extends Controller
             'photo_2'           => 'nullable|image',
             'photo_3'           => 'nullable|image',
             'photo_4'           => 'nullable|image',
-            'floor_plan'        => 'nullable|image',
             'size'              => 'required|numeric',
-
             'schedules' => 'nullable|array',
             'schedules.*.available_day' => 'required_with:schedules|string',
             'schedules.*.start_time' => 'required_with:schedules|date_format:H:i',
@@ -182,7 +180,7 @@ class PropertyController extends Controller
 
         // Handle photo upload
         $photos = [];
-        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4', 'floor_plan'] as $photoField) {
+        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4'] as $photoField) {
             $photos[$photoField] = $request->hasFile($photoField) ? $request->file($photoField)->store('uploads/photos', 'public') : null;
         }
 
@@ -200,7 +198,6 @@ class PropertyController extends Controller
             'photo_2'       => $photos['photo_2'],
             'photo_3'       => $photos['photo_3'],
             'photo_4'       => $photos['photo_4'],
-            'floor_plan'    => $photos['floor_plan'],
             'status'        => 0, // inactive, needs admin approval
             'size'          => $validatedData['size'] ?? null,
             'is_featured'   => 0,
@@ -321,7 +318,6 @@ class PropertyController extends Controller
             'photo_2'           => 'nullable|image|max:51200',
             'photo_3'           => 'nullable|image|max:51200',
             'photo_4'           => 'nullable|image|max:51200',
-            'floor_plan'        => 'nullable|image|max:51200',
             'size'              => 'nullable|numeric',
             'status'            => 'nullable|integer',
             'propertyStats'     => 'nullable|integer',
@@ -339,7 +335,7 @@ class PropertyController extends Controller
         ]);
 
         // Handle photo uploads individually
-        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4', 'floor_plan'] as $photoField) {
+        foreach (['photo_1', 'photo_2', 'photo_3', 'photo_4'] as $photoField) {
             if ($request->hasFile($photoField)) {
                 $property->$photoField = $request->file($photoField)->store('uploads/photos', 'public');
             }
@@ -347,7 +343,7 @@ class PropertyController extends Controller
 
         // Update property basic fields
         $property->update([
-            'title'         => $validatedData['title'],
+            'title'         => $validatedData['title'] ?? $property->title,
             'description'   => $validatedData['description'] ?? $property->description,
             'address'       => $validatedData['address'] ?? $property->address,
             'barangay'       => $validatedData['barangay'] ?? $property->barangay,
@@ -445,7 +441,7 @@ class PropertyController extends Controller
         if ($landlord) {
             $landlord->notify(new SystemNotifications(
                 'Property Approved',
-                'Your property "' . $property->title . '" has been approved by the admin.'
+                'Your new property "' . $property->title . '" has been approved by the admin.'
             ));
         }
 
@@ -552,18 +548,19 @@ class PropertyController extends Controller
     public function destroy($id)
     {
         $property = Property::findOrFail($id);
-
-        // Store property title before deleting
         $propertyName = $property->title;
 
+        // Delete bookings first via schedules
+        foreach ($property->schedules as $schedule) {
+            $schedule->bookings()->delete();
+        }
+
         // Delete related data
-        $property->schedules()->each(function ($schedule) {
-            $schedule->bookings()->delete(); // delete bookings first
-        });
         $property->schedules()->delete();
         $property->inquiries()->delete();
         $property->leases()->delete();
-        $property->landmarks()->delete(); // ✅ delete all related landmarks
+        $property->landmarks()->delete();
+        $property->bookings()->delete();
 
         // Delete the property itself
         $property->delete();
@@ -589,6 +586,7 @@ class PropertyController extends Controller
         return response()->json(['message' => 'Property and related data deleted successfully']);
     }
 
+
     public function pendingProperty()
     {
         $totalPendingProperty = Property::where('status', 0)->count();
@@ -602,11 +600,19 @@ class PropertyController extends Controller
     {
         $currentProperty = Property::findOrFail($id);
 
-        // Fetch recommended properties based on property_type (and active status)
+        // Split the property types into an array and trim spaces
+        $types = explode(',', $currentProperty->property_type);
+        $types = array_map('trim', $types);
+
+        // Fetch recommended properties matching any type
         $recommended = Property::with('landlord.account', 'landmarks')
-            ->where('status', 1)
-            ->where('property_type', $currentProperty->property_type)
-            ->where('id', '!=', $id) // exclude current property
+            ->where('status', 2)
+            ->where('id', '!=', $id)
+            ->where(function($query) use ($types) {
+                foreach ($types as $type) {
+                    $query->orWhere('property_type', 'like', "%{$type}%");
+                }
+            })
             ->latest()
             ->take(3)
             ->get();

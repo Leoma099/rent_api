@@ -24,7 +24,6 @@ class Property extends Model
         'photo_2',
         'photo_3',
         'photo_4',
-        'floor_plan',
         'status',
         'is_featured',
         'size',
@@ -66,5 +65,7 @@ class Property extends Model
     {
         return $this->hasMany(Lease::class);
     }
+
+
 
 }
