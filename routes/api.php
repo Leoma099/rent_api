@@ -2,6 +2,7 @@
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Artisan;
 use App\Http\Controllers\AccountController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\MyAccountController;
@@ -155,4 +156,22 @@ Route::post('login', 'AuthController@login');
 Route::get('test/users', function()
 {
     return \App\Models\Account::all();
+});
+
+Route::get('/clear-cache', function () {
+    try {
+        // Run Laravel optimize:clear
+        Artisan::call('optimize:clear');
+
+        return response()->json([
+            'status' => 'success',
+            'message' => 'Cache cleared successfully!',
+            'output' => Artisan::output() // optional: shows what Artisan returned
+        ]);
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+    }
 });
