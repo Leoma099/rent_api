@@ -70,7 +70,7 @@ class AccountController extends Controller
             'email' => 'required|email|unique:accounts',
             'mobile_number' => ['required','regex:/^09\d{9}$/','unique:accounts,mobile_number'],
             'username' => 'required|unique:users',
-            'password' => ['required', 'min:8', 'regex:/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).+$/']
+            'password' => ['required', 'string']
         ]);
 
          // Create the user first
